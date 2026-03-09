@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dataset Visualizer</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Landing Page -->
+    <div id="landing" class="hidden">
+      <div class="landing-bg"></div>
+      <div class="landing-overlay"></div>
+      <div class="landing-content">
+        <img src="/clone_logo_wide.png" alt="Clone" class="landing-logo">
+        <h1>Dataset Visualizer</h1>
+        <p class="landing-subtitle">Visualize multimodal agent recordings — desktop and mobile</p>
+
+        <div class="dataset-list">
+          <h3>Example Datasets:</h3>
+          <ul id="featured-datasets"></ul>
+        </div>
+
+        <div class="search-box">
+          <input type="text" id="dataset-input"
+            placeholder="enter dataset id (ex: org/dataset_name)">
+          <button id="go-btn">Go</button>
+        </div>
+
+        <details class="more-datasets">
+          <summary>More example datasets</summary>
+          <ul id="more-datasets"></ul>
+        </details>
+
+        <div class="local-section">
+          <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-icon">📁</div>
+            <div class="drop-zone-text">Drop MCAP + Video + JSON files here</div>
+            <div class="drop-zone-or">or</div>
+            <div class="drop-zone-files">
+              <label class="file-btn"><input type="file" id="mcap-input-landing" accept=".mcap"> Select MCAP</label>
+              <label class="file-btn"><input type="file" id="mkv-input-landing" accept=".mkv,.mp4,.webm"> Select
+                Video</label>
+              <label class="file-btn file-btn-json"><input type="file" id="json-input-landing" accept=".json"> Select
+                JSON</label>
+            </div>
+            <div class="drop-zone-status" id="file-status"></div>
+            <button id="load-no-json-btn" class="load-no-json-btn hidden">Load without JSON →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Selection (direct URL mode) -->
+    <div id="file-select" class="hidden">
+      <h2>Loading...</h2>
+      <p id="status"></p>
+    </div>
+
+    <!-- ================================================================
+         VIEWER (single container, class toggles mobile/desktop layout)
+         Becomes .mode-mobile or .mode-desktop
+         ================================================================ -->
+    <div id="viewer" class="hidden">
+      <div id="viewer-layout">
+
+        <!-- Video section -->
+        <div id="viewer-video">
+          <div id="video-container">
+            <video id="video" controls></video>
+            <div id="loading-indicator" class="hidden">Loading...</div>
+          </div>
+
+          <!-- Desktop: overlay canvas + controls (hidden in mobile) -->
+          <canvas id="desktop-overlay" class="desktop-only hidden"></canvas>
+          <div id="desktop-info-panel" class="desktop-only hidden">
+            <div id="desktop-time-info">Time: <span></span></div>
+            <div id="mouse-mode">
+              Mouse:
+              <label><input type="radio" name="mouse-mode" value="raw" checked> Relative (3D)</label>
+              <label><input type="radio" name="mouse-mode" value="absolute"> Absolute (2D)</label>
+              <label id="recenter-label">
+                Recenter:
+                <input type="number" id="recenter-interval" min="0" value="0" step="100" placeholder="ms">
+                ms (0=off)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile: Phone frame with touch canvas + hardware buttons (hidden in desktop) -->
+        <div id="phone-frame" class="mobile-only hidden">
+          <div id="viewer-touch">
+            <canvas id="touch-canvas"></canvas>
+          </div>
+          <div id="hardware-buttons">
+            <div class="hw-btn" id="btn-volume-up" data-label="VOL +"></div>
+            <div class="hw-btn" id="btn-volume-down" data-label="VOL −"></div>
+            <div class="hw-btn hw-btn-power" id="btn-power" data-label="⏻"></div>
+          </div>
+        </div>
+
+        <!-- Right: Instruction + Chat (shared) -->
+        <div id="right-panel">
+          <div id="instruction-box">
+            <div id="instruction-header">Instruction</div>
+            <div id="instruction-text" class="placeholder">No instruction</div>
+          </div>
+          <div id="chat-panel">
+            <div id="chat-header">Reasoning Log</div>
+            <div id="chat-messages"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile: info bar (hidden in desktop) -->
+      <div id="mobile-info-bar" class="mobile-only hidden">
+        <div id="mobile-time-info">Time: <span></span></div>
+        <div id="touch-info">Touches: <span>0</span></div>
+        <div id="rotation-info">Rotation: <span>Portrait</span></div>
+      </div>
+
+      <!-- Info panels (shared) -->
+      <div id="info-panels">
+        <!-- HF dataset link (desktop/HF mode) -->
+        <div id="dataset-link" class="hidden">
+          <a id="dataset-link-anchor" href="#" target="_blank" rel="noopener noreferrer">
+            <span class="hf-icon">🤗</span>
+            <span id="dataset-link-text"></span>
+            <span class="external-icon">↗</span>
+          </a>
+        </div>
+
+        <!-- HF file tree -->
+        <details id="file-section" class="hidden" open>
+          <summary>Files</summary>
+          <ul id="hf-file-list"></ul>
+        </details>
+
+        <div id="device-info">
+          <p class="placeholder">No device data</p>
+        </div>
+
+        <!-- Desktop: window info -->
+        <div id="window-info" class="desktop-only hidden">
+          <p class="placeholder">No window data</p>
+        </div>
+
+        <div id="mcap-info">
+          <p class="placeholder">Loading...</p>
+        </div>
+      </div>
+
+      <!-- Usage hints (mode-specific) -->
+      <div id="usage-hint-mobile" class="mobile-only hidden">
+        <p><strong>Touch:</strong> Red circles show touch points. Trails show swipe/drag gestures.</p>
+        <p><strong>Multi-touch:</strong> Each finger slot is tracked independently.</p>
+      </div>
+      <div id="usage-hint-desktop" class="desktop-only hidden">
+        <p><strong>Data:</strong> Mouse coordinates based on 1920x1080. Keyboard uses Windows VK codes.</p>
+        <p><strong>Relative (3D):</strong> For FPS/3D games. Accumulates raw mouse deltas. Use Recenter to reset
+          position periodically.</p>
+        <p><strong>Absolute (2D):</strong> For RTS/2D games. Uses absolute cursor coordinates from mouse topic.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
