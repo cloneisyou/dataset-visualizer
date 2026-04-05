@@ -314,18 +314,18 @@ function updateChatPanel(currentTimeSec) {
 
   if (targetIdx === _lastRenderedIndex) return;
 
-  if (targetIdx < _lastRenderedIndex) {
-    container.innerHTML = "";
-    for (let i = 0; i <= targetIdx; i++) {
-      container.appendChild(_createChatBubble(_annotations[i]));
-    }
-  } else {
-    for (let i = _lastRenderedIndex + 1; i <= targetIdx; i++) {
-      container.appendChild(_createChatBubble(_annotations[i]));
-    }
+  const bubbles = container.children;
+  for (let i = 0; i < bubbles.length; i++) {
+    const isActive = i <= targetIdx;
+    const isCurrent = i === targetIdx;
+    bubbles[i].classList.toggle("active", isActive);
+    bubbles[i].classList.toggle("current", isCurrent);
   }
+
   _lastRenderedIndex = targetIdx;
-  container.scrollTop = container.scrollHeight;
+  if (targetIdx >= 0 && bubbles[targetIdx]) {
+    bubbles[targetIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
 }
 
 function _createChatBubble(annotation) {
@@ -410,7 +410,12 @@ async function loadJsonData(jsonFile) {
     }
     _lastRenderedIndex = -1;
     const container = document.getElementById("chat-messages");
-    if (container) container.innerHTML = "";
+    if (container) {
+      container.innerHTML = "";
+      for (const annotation of _annotations) {
+        container.appendChild(_createChatBubble(annotation));
+      }
+    }
   } catch (e) {
     console.error("Failed to load JSON:", e);
   }
@@ -531,6 +536,15 @@ function initViewer(channelCount) {
       overlayCanvas.width = w;
       overlayCanvas.height = desktopModules.constants.OVERLAY_HEIGHT;
       overlayCanvas.style.width = w + "px";
+
+      const resizeOverlay = () => {
+        const newW = video.offsetWidth || 800;
+        overlayCanvas.width = newW;
+        overlayCanvas.height = desktopModules.constants.OVERLAY_HEIGHT;
+        overlayCanvas.style.width = newW + "px";
+      };
+      window.addEventListener("resize", resizeOverlay);
+
       startDesktopRenderLoop();
     };
   }
