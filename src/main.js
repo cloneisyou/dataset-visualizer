@@ -24,15 +24,21 @@ function initLanding() {
   const featured = document.getElementById("featured-datasets");
   const more = document.getElementById("more-datasets");
 
-  for (const ds of FEATURED_DATASETS) {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="?repo_id=${ds}">${ds}</a>`;
-    featured.appendChild(li);
+  if (featured) {
+    featured.innerHTML = "";
+    for (const ds of FEATURED_DATASETS) {
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="?repo_id=${ds}">${ds}</a>`;
+      featured.appendChild(li);
+    }
   }
-  for (const ds of MORE_DATASETS) {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="?repo_id=${ds}">${ds}</a>`;
-    more.appendChild(li);
+  if (more) {
+    more.innerHTML = "";
+    for (const ds of MORE_DATASETS) {
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="?repo_id=${ds}">${ds}</a>`;
+      more.appendChild(li);
+    }
   }
 
   // Search box
