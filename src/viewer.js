@@ -428,6 +428,17 @@ async function loadJsonData(jsonFile) {
 async function setup(reader) {
   mcapReader = reader;
 
+  // Reset state from previous file
+  _annotations = [];
+  _lastRenderedIndex = -1;
+  const chatContainer = document.getElementById("chat-messages");
+  if (chatContainer) chatContainer.innerHTML = "";
+  const instrEl = document.getElementById("instruction-text");
+  if (instrEl) {
+    instrEl.textContent = "No instruction";
+    instrEl.classList.add("placeholder");
+  }
+
   // Detect device type
   deviceType = await detectDeviceType(reader);
 
@@ -454,9 +465,12 @@ async function setup(reader) {
 
   await displayMcapInfo(document.getElementById("mcap-info"), reader);
 
-  // Mode-specific info
+  // Mode-specific info — always reset device-info first
+  const deviceInfoEl = document.getElementById("device-info");
   if (deviceType === "mobile") {
-    await updateDeviceInfo(document.getElementById("device-info"), reader);
+    await updateDeviceInfo(deviceInfoEl, reader);
+  } else if (deviceInfoEl) {
+    deviceInfoEl.innerHTML = '<div class="section-title">Device Info</div><p class="placeholder">No device metadata</p>';
   }
 
   stateManager.lastProcessedTime = timeSync.getBasePtsTime();
@@ -572,13 +586,26 @@ export async function loadFromFiles(mcapFile, mkvFile, statusEl, jsonFile) {
   }
 }
 
-export async function loadFromUrls(mcapUrl, mkvUrl) {
+export async function loadFromUrls(mcapUrl, mkvUrl, jsonUrl) {
   updateStatus("Loading...");
   try {
     const { reader, channels } = await loadMcapFromUrl(mcapUrl);
     await setup(reader);
     video.src = mkvUrl;
     initViewer(channels.length);
+
+    if (jsonUrl) {
+      try {
+        const res = await fetch(jsonUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], "metadata.json", { type: "application/json" });
+          await loadJsonData(file);
+        }
+      } catch (jsonErr) {
+        console.warn("Failed to load JSON metadata:", jsonErr);
+      }
+    }
   } catch (e) {
     updateStatus(`Error: ${e.message}`);
     console.error(e);

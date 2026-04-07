@@ -165,7 +165,7 @@ async function initTreeViewer(fetchTree) {
     const container = document.getElementById("hf-file-list");
     section?.classList.remove("hidden");
 
-    const firstLi = renderFileTree(tree, container, (f) => loadFromUrls(f.mcap, f.mkv));
+    const firstLi = renderFileTree(tree, container, (f) => loadFromUrls(f.mcap, f.mkv, f.json));
     firstLi?.click();
   } catch (e) {
     updateStatus(`Error: ${e.message}`);

@@ -14,28 +14,32 @@ export async function fetchFileList(repoId) {
     const dirs = items.filter((i) => i.type === "directory" && !i.path.split("/").pop().startsWith("."));
     const files = items.filter((i) => i.type !== "directory");
 
-    // Group files by basename and pair mcap with video
+    // Group files by basename and pair mcap with video and json
     const pairs = new Map();
     for (const file of files) {
       const isMcap = file.path.endsWith(".mcap");
       const isVideo = /\.(mkv|mp4|webm)$/i.test(file.path);
-      if (!isMcap && !isVideo) continue;
+      const isJson = file.path.endsWith(".json");
+      if (!isMcap && !isVideo && !isJson) continue;
 
-      const basename = file.path.replace(/\.(mcap|mkv|mp4|webm)$/i, "");
+      const basename = file.path.replace(/\.(mcap|mkv|mp4|webm|json)$/i, "");
       const pair = pairs.get(basename) || {};
       if (isMcap) pair.mcap = file.path;
       if (isVideo) pair.video = file.path;
+      if (isJson) pair.json = file.path;
       pairs.set(basename, pair);
     }
 
     for (const [basename, pair] of pairs) {
       if (pair.mcap && pair.video) {
-        node.files.push({
+        const entry = {
           name: basename.split("/").pop(),
           path: basename,
           mcap: `${baseUrl}/${pair.mcap}`,
           mkv: `${baseUrl}/${pair.video}`,
-        });
+        };
+        if (pair.json) entry.json = `${baseUrl}/${pair.json}`;
+        node.files.push(entry);
       }
     }
 
